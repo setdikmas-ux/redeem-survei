@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klaim Hadiah Survei Internal</title>
+    <link href="https://googleapis.com" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background: linear-gradient(-45deg, #ff7b00, #ff007f, #00bfff, #00ffcc);
+            background-size: 400% 400%;
+            animation: gradientBergerak 12s ease infinite;
+            min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; margin: 0; overflow: hidden;
+        }
+        @keyframes gradientBergerak {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .container { 
+            width: 100%; max-width: 460px; background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(12px); padding: 35px 25px; border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); text-align: center; position: relative; z-index: 2; transition: transform 0.2s;
+        }
+        .shake-animation { animation: shakeEffect 0.4s ease-in-out; }
+        @keyframes shakeEffect {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
+        }
+        h2 { color: #1a202c; font-weight: 800; font-size: 26px; margin: 0 0 5px 0; }
+        .sub-title { color: #4a5568; font-size: 14px; margin-bottom: 25px; }
+        input[type="text"] { 
+            width: 100%; padding: 15px; margin-bottom: 20px; border: 3px solid #cbd5e0; border-radius: 14px; font-size: 18px; font-family: inherit; box-sizing: border-box; text-align: center; font-weight: bold; transition: all 0.3s;
+        }
+        input[type="text"]:focus { border-color: #ff007f; outline: none; box-shadow: 0 0 0 3px rgba(255, 0, 127, 0.3); }
+        button { 
+            width: 100%; padding: 15px; background: linear-gradient(135deg, #ff007f 0%, #ff7b00 100%); color: white; border: none; border-radius: 14px; font-size: 18px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(255, 0, 127, 0.3); transition: all 0.2s ease;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255, 0, 127, 0.5); }
+        .result-box { margin-top: 25px; padding: 25px; border-radius: 18px; display: none; animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .menang { background: #ecfdf5; border: 2px dashed #10b981; color: #065f46; }
+        .kalah { background: #fef2f2; border: 2px dashed #ef4444; color: #991b1b; }
+        .hadiah-text { font-size: 30px; font-weight: 800; color: #047857; margin-top: 5px; }
+        .visual-emoji { font-size: 80px; margin: 15px 0 5px 0; display: block; animation: bounceEmoji 1s infinite alternate; }
+        @keyframes bounceEmoji { 0% { transform: translateY(0); } 100% { transform: translateY(-10px); } }
+        #confetti-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+    </style>
+</head>
+<body>
+
+<canvas id="confetti-canvas"></canvas>
+
+<div class="container" id="mainCard">
+    <h2>🎁 REDEEM TOKEN HADIAH</h2>
+    <div class="sub-title">Masukkan kode token unik hasil survei Anda</div>
+    
+    <input type="text" id="tokenInput" placeholder="Ketik Kode Token Di Sini" autocomplete="off">
+    <button onclick="cekToken()">Klaim Hadiah Sekarang!</button>
+
+    <div id="resultBox" class="result-box">
+        <div id="visualEmoji" class="visual-emoji"></div>
+        <div id="resultTitle" style="font-weight: bold; text-transform: uppercase; margin-top: 10px;"></div>
+        <div id="hadiahDetail" class="hadiah-text"></div>
+        <p style="font-size: 11px; margin-top: 15px; color: #718096; border-top: 1px dashed rgba(0,0,0,0.1); padding-top: 10px;">*Screenshot layar ini & bawa ke loket panitia.</p>
+    </div>
+</div>
+<script>
+    // === MASTER DATA DATABASE TOKEN EXCEL ===
+    const databaseToken = {
+        "48291": "Mug Lembaga",
+        "12345": "E-Wallet Rp50.000",
+        "55432": "Kaos Eksklusif",
+        "99999": "Belum Beruntung"
+    };
+
+    // --- LOGIKA UTAMA HUJAN PITA DAN CONFETTI ---
+    let confettiInterval;
+    function lemparConfetti() {
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth; 
+        canvas.height = window.innerHeight;
+        
+        let pieces = [];
+        const colors = ['#f56565', '#ed64a6', '#ecc94b', '#48bb78', '#38b2ac', '#4299e1', '#9f7aea'];
+        
+        for (let i = 0; i < 120; i++) {
+            pieces.push({
+                x: Math.random() * canvas.width, 
+                y: Math.random() * canvas.height - canvas.height,
+                r: Math.random() * 6 + 6,
+                d: Math.random() * canvas.height, 
+                color: colors[Math.floor(Math.random() * colors.length)],
+                tilt: Math.random() * 12 - 6, 
+                tiltAngleIncremental: Math.random() * 0.08 + 0.03, 
+                tiltAngle: 0
+            });
+        }
+        
+        clearInterval(confettiInterval);
+        let startTime = Date.now();
+        
+        confettiInterval = setInterval(() => {
+            if (Date.now() - startTime > 6000) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                clearInterval(confettiInterval);
+                return;
+            }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            pieces.forEach((p) => {
+                p.tiltAngle += p.tiltAngleIncremental; 
+                p.y += (Math.cos(p.d) + 4 + p.r / 2) / 2; 
+                p.x += Math.sin(p.tiltAngle); 
+                p.tilt = Math.sin(p.tiltAngle - p.r / 2) * 8;
+
+                ctx.beginPath(); 
+                ctx.lineWidth = p.r; 
+                ctx.strokeStyle = p.color;
+                ctx.moveTo(p.x + p.tilt + p.r / 2, p.y); 
+                ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 2); 
+                ctx.stroke();
+                
+                if (p.y > canvas.height) { 
+                    p.x = Math.random() * canvas.width; 
+                    p.y = -20; 
+                }
+            });
+        }, 20);
+    }
+
+    // --- AUDIO GENERATOR INTERNAL (100% PASTI BUNYI) ---
+    function putarAudioPerasaan(efek) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+
+        if (efek === 'semangat_menang') {
+            const lagu = [
+                { f: 523.25, d: 0.1, t: 0.0, type: 'sawtooth' }, 
+                { f: 659.25, d: 0.1, t: 0.1, type: 'sawtooth' }, 
+                { f: 783.99, d: 0.1, t: 0.2, type: 'sawtooth' }, 
+                { f: 1046.50, d: 0.4, t: 0.3, type: 'sawtooth' }, 
+                { f: 523.25, d: 0.15, t: 0.8, type: 'triangle' },
+                { f: 587.33, d: 0.15, t: 1.0, type: 'sawtooth' },
+                { f: 659.25, d: 0.15, t: 1.2, type: 'sawtooth' },
+                { f: 783.99, d: 0.30, t: 1.4, type: 'sawtooth' },
+                { f: 659.25, d: 0.15, t: 1.8, type: 'triangle' },
+                { f: 783.99, d: 0.30, t: 2.0, type: 'sawtooth' },
+                { f: 880.00, d: 0.15, t: 2.4, type: 'sawtooth' },
+                { f: 1046.50, d: 0.50, t: 2.6, type: 'sawtooth' },
+                { f: 783.99, d: 0.15, t: 3.2, type: 'triangle' },
+                { f: 880.00, d: 0.15, t: 3.4, type: 'sawtooth' },
+                { f: 1046.50, d: 0.15, t: 3.6, type: 'sawtooth' },
+                { f: 1174.66, d: 0.30, t: 3.8, type: 'sawtooth' },
+                { f: 880.00, d: 0.20, t: 4.2, type: 'triangle' },
+                { f: 1046.50, d: 0.20, t: 4.4, type: 'sawtooth' },
+                { f: 1318.51, d: 1.20, t: 4.7, type: 'sawtooth' } 
+            ];
+            lagu.forEach(nada => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = nada.type;
+                osc.frequency.setValueAtTime(nada.f, ctx.currentTime + nada.t);
+                if (nada.t === 4.7) {
+                    osc.frequency.linearRampToValueAtTime(1330.00, ctx.currentTime + nada.t + 0.3);
+                }
+                gain.gain.setValueAtTime(0.18, ctx.currentTime + nada.t);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + nada.t + nada.d);
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(ctx.currentTime + nada.t); osc.stop(ctx.currentTime + nada.t + nada.d);
+            });
+        } 
+        else if (efek === 'terompet_sedih') {
+            const nadaSOP = [
+                { f: 293.66, d: 0.25, t: 0.0 },  
+                { f: 277.18, d: 0.25, t: 0.3 },  
+                { f: 261.63, d: 0.25, t: 0.6 },  
+                { f: 220.00, d: 0.60, t: 0.9 }   
+            ];
+            nadaSOP.forEach(nada => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sawtooth'; 
+                osc.frequency.setValueAtTime(nada.f, ctx.currentTime + nada.t);
+                if (nada.f === 220.00) {
+                    osc.frequency.linearRampToValueAtTime(170.00, ctx.currentTime + nada.t + nada.d);
+                }
+                gain.gain.setValueAtTime(0.15, ctx.currentTime + nada.t);
+                gain.gain.linearRampToValueAtTime(0.001, ctx.currentTime + nada.t + nada.d);
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(ctx.currentTime + nada.t); osc.stop(ctx.currentTime + nada.t + nada.d);
+            });
+        }
+    }
+
+    // --- FUNGSI UTAMA PENGECEKAN TOKEN ---
+    function cekToken() {
+        const token = document.getElementById('tokenInput').value.trim();
+        const box = document.getElementById('resultBox');
+        const title = document.getElementById('resultTitle');
+        const hadiahDetail = document.getElementById('hadiahDetail');
+        const emojiDiv = document.getElementById('visualEmoji');
+        const card = document.getElementById('mainCard');
+        
+        box.style.display = "block"; 
+        card.classList.remove('shake-animation');
+
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height); 
+        clearInterval(confettiInterval);
+
+        if (databaseToken[token]) {
+            const hadiah = databaseToken[token];
+            if (hadiah !== "Belum Beruntung") {
+                box.className = "result-box menang"; 
+                title.innerText = "🎉 FANTASTIS! KAMU MENANG";
+                hadiahDetail.innerText = hadiah;
+                emojiDiv.innerText = "🥳🎁"; 
+                putarAudioPerasaan('semangat_menang'); 
+                lemparConfetti();
+            } else {
+                box.className = "result-box kalah"; 
+                title.innerText = "❌ YAHH... BELUM BERUNTUNG";
+                hadiahDetail.innerText = "Jangan berkecil hati!";
+                emojiDiv.innerText = "😢🎺"; 
+                putarAudioPerasaan('terompet_sedih'); 
+                setTimeout(() => card.classList.add('shake-animation'), 50);
+            }
+        } else {
+            box.className = "result-box kalah"; 
+            title.innerText = "⚠ TOKEN TIDAK DIKENAL";
+            hadiahDetail.innerText = "Periksa salah ketik kodenya!";
+            emojiDiv.innerText = "🤔❌"; 
+            putarAudioPerasaan('terompet_sedih'); 
+            setTimeout(() => card.classList.add('shake-animation'), 50);
+        }
+    }
+
+    window.addEventListener('resize', () => {
+        const canvas = document.getElementById('confetti-canvas'); 
+        canvas.width = window.innerWidth; 
+        canvas.height = window.innerHeight;
+    });
+</script>
+</body>
+</html>
